@@ -1,0 +1,1117 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>[hidden]{display:none!important}</style></head><body>
+<title>Dead Ball</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=VT323&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --void:#050606;
+  --bone:#dcd5c2;
+  --bone-dim:#8f8a7c;
+  --blood:#c0241f;
+  --sick:#94b67d;
+  --u:2px;
+}
+html,body{height:100%}
+body{margin:0;background:var(--void);color:var(--bone);font-family:"VT323",ui-monospace,Menlo,Consolas,monospace;overflow:hidden;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+#app{height:100%;box-sizing:border-box;padding-inline:16px;padding-block:16px;display:flex;align-items:center;justify-content:center}
+#stage{position:relative;width:640px;height:480px;max-width:100%;background:#000;overflow:hidden;box-shadow:0 0 0 1px #151717,0 0 80px rgba(0,0,0,.9);cursor:crosshair;touch-action:manipulation;outline:none}
+#stage:focus-visible{box-shadow:0 0 0 2px var(--bone-dim),0 0 80px rgba(0,0,0,.9)}
+#screen{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;display:block}
+.fx{position:absolute;inset:0;pointer-events:none}
+.vig{background:radial-gradient(ellipse at 50% 48%,rgba(0,0,0,0) 52%,rgba(0,0,0,.7) 100%)}
+.scan{background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,0) var(--u),rgba(0,0,0,.2) var(--u),rgba(0,0,0,.2) calc(var(--u)*2))}
+.hud{position:absolute;pointer-events:none;font-size:calc(var(--u)*10);line-height:1;letter-spacing:.05em;text-shadow:var(--u) var(--u) 0 #000;font-variant-numeric:tabular-nums}
+.hud .sub{font-size:calc(var(--u)*7);color:var(--bone-dim);margin-top:calc(var(--u)*1)}
+#tl{left:calc(var(--u)*8);top:calc(var(--u)*7)}
+#tr{right:calc(var(--u)*8);top:calc(var(--u)*7);text-align:right}
+#tr .clock{font-size:calc(var(--u)*16);color:var(--blood)}
+#tr .clock.low{animation:pulse .5s steps(1) infinite}
+#tc{left:0;right:0;top:calc(var(--u)*8);text-align:center;color:var(--bone-dim);font-size:calc(var(--u)*8)}
+#tc.near{color:var(--blood)}
+#msg{left:0;right:0;top:34%;text-align:center;font-size:calc(var(--u)*22);opacity:0}
+#msg.show{animation:msg 1.5s steps(8) forwards}
+#msg.good{color:var(--bone)}
+#msg.bad{color:var(--blood)}
+#hint{left:0;right:0;bottom:calc(var(--u)*25);text-align:center;font-size:calc(var(--u)*8);color:var(--bone-dim)}
+#stage[data-mode="menu"] .hud{display:none}
+/* meter grades, stamped out like a timing readout */
+.grade{position:absolute;pointer-events:none;font-size:calc(var(--u)*13);line-height:1;letter-spacing:.06em;white-space:nowrap;text-shadow:var(--u) var(--u) 0 #000,0 0 calc(var(--u)*6) rgba(0,0,0,.8);opacity:0}
+.grade small{display:block;font-size:calc(var(--u)*6.5);letter-spacing:.2em;color:var(--bone-dim);margin-bottom:calc(var(--u)*1)}
+.grade.show{animation:stamp 1.6s cubic-bezier(.2,1.6,.4,1) forwards}
+.grade.g-perfect{color:#e8d27a}
+.grade.g-good{color:var(--sick)}
+.grade.g-notgood{color:#d08a4a}
+.grade.g-nec{color:var(--blood)}
+#popAim{left:0;right:0;bottom:calc(var(--u)*38);text-align:center}
+#popPow{right:calc(var(--u)*32);top:calc(var(--u)*74);text-align:right}
+#pp{left:0;right:0;top:22%;text-align:center;opacity:0;pointer-events:none;position:absolute}
+#pp .l1{font-family:"IM Fell English SC","Iowan Old Style",Georgia,serif;font-size:calc(var(--u)*30);color:#e8d27a;line-height:.9;text-shadow:var(--u) var(--u) 0 #000,0 0 calc(var(--u)*10) rgba(232,210,122,.35)}
+#pp .l2{display:inline-block;margin-top:calc(var(--u)*4);font-size:calc(var(--u)*14);color:#050606;background:#e8d27a;padding:calc(var(--u)*1) calc(var(--u)*6);letter-spacing:.12em}
+#pp.show{animation:stamp 2.2s cubic-bezier(.2,1.6,.4,1) forwards}
+@keyframes stamp{0%{opacity:0;transform:scale(1.9)}10%{opacity:1;transform:scale(1)}14%{transform:translateX(calc(var(--u)*-1))}18%{transform:translateX(var(--u))}22%{transform:none}78%{opacity:1}100%{opacity:0;transform:translateY(calc(var(--u)*-4))}}
+#evt{left:0;right:0;top:47%;text-align:center;font-size:calc(var(--u)*13);letter-spacing:.14em;opacity:0}
+#evt.show{animation:stamp 1.5s cubic-bezier(.2,1.6,.4,1) forwards}
+#evt.fire{color:#ff8a2a;text-shadow:var(--u) var(--u) 0 #000,0 0 calc(var(--u)*8) rgba(255,110,20,.7)}
+#evt.light{color:#cfe8c0;text-shadow:var(--u) var(--u) 0 #000,0 0 calc(var(--u)*8) rgba(200,255,200,.45)}
+#evt.to{color:#e8d27a}
+#evt.out{color:var(--bone-dim)}
+#streak{margin-top:calc(var(--u)*3);font-size:calc(var(--u)*7);letter-spacing:.14em;color:var(--bone-dim)}
+#streak.fire{color:#ff8a2a;animation:flick .18s steps(2) infinite;text-shadow:var(--u) var(--u) 0 #000,0 0 calc(var(--u)*5) rgba(255,110,20,.8)}
+@keyframes flick{50%{opacity:.7}}
+@keyframes msg{0%{opacity:0;transform:translateY(calc(var(--u)*4))}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0}}
+@keyframes fade{0%{opacity:0}8%{opacity:1}80%{opacity:1}100%{opacity:0}}
+@keyframes pulse{50%{opacity:.25}}
+@keyframes blink{50%{opacity:0}}
+
+.screen[hidden]{display:none}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;gap:calc(var(--u)*5);padding:calc(var(--u)*16) calc(var(--u)*18);box-sizing:border-box;background:linear-gradient(to bottom,rgba(5,6,6,0) 10%,rgba(5,6,6,.55) 45%,rgba(5,6,6,.92) 100%)}
+.kicker{margin:0;font-size:calc(var(--u)*8);letter-spacing:.18em;color:var(--bone-dim)}
+.screen h1{margin:0;font-family:"IM Fell English SC","Iowan Old Style","Palatino Linotype",Georgia,serif;font-weight:400;font-size:calc(var(--u)*42);line-height:.85;letter-spacing:.01em;color:var(--bone);text-shadow:var(--u) 0 0 rgba(192,36,31,.85),calc(var(--u)*-1) 0 0 rgba(90,170,150,.35);text-wrap:balance}
+#over h1{color:var(--blood);text-shadow:var(--u) 0 0 rgba(0,0,0,.9)}
+.lede{margin:0;font-size:calc(var(--u)*11);max-width:36ch;line-height:1.05}
+.rules{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*2) calc(var(--u)*12);font-size:calc(var(--u)*8.5);color:var(--bone-dim);max-width:62ch;line-height:1.05}
+.rules b{color:var(--bone);font-weight:400}
+.row{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:calc(var(--u)*4) calc(var(--u)*10);border-top:1px solid rgba(220,213,194,.18);padding-top:calc(var(--u)*5)}
+.start{font-size:calc(var(--u)*14);color:var(--bone);animation:blink 1.1s steps(1) infinite;letter-spacing:.12em}
+.meta{font-size:calc(var(--u)*7.5);color:var(--bone-dim);letter-spacing:.08em}
+.resbtn{font:inherit;color:var(--bone);background:none;border:1px solid rgba(220,213,194,.35);padding:calc(var(--u)*1) calc(var(--u)*4);margin-block:calc(var(--u)*2);cursor:pointer;letter-spacing:inherit}
+.resbtn:hover,.resbtn:focus-visible{border-color:var(--bone);outline:none}
+.stat{font-size:calc(var(--u)*12)}
+.stat em{font-style:normal;color:var(--blood)}
+@media (prefers-reduced-motion:reduce){.start,#tr .clock.low,#streak.fire{animation:none}#evt.show{animation-name:fade}.grade.show,#pp.show{animation-name:fade}#msg.show{animation-duration:1.5s;animation-timing-function:steps(1)}}
+</style>
+
+<div id="app">
+  <div id="stage" data-mode="menu" tabindex="0" aria-label="Dead Ball. Press Space, click or tap to play.">
+    <canvas id="screen" aria-hidden="true"></canvas>
+    <div class="fx vig"></div>
+    <div class="fx scan"></div>
+
+    <div class="hud" id="tl"><div>PTS <span id="hMade">00</span></div><div class="sub">BEST <span id="hBest">00</span></div><div class="sub">TIMEOUTS <span id="hTO">0</span></div></div>
+    <div class="hud" id="tc"><span id="hSteps">HE IS 5 STEPS AWAY</span><div id="streak"></div></div>
+    <div class="hud" id="tr"><div class="sub">10-SEC RULE</div><div class="clock" id="hClock">10</div></div>
+    <div class="hud" id="msg"></div>
+    <div class="hud" id="hint"></div>
+    <div class="hud" id="evt"></div>
+    <div class="hud grade" id="popAim"></div>
+    <div class="hud grade" id="popPow"></div>
+    <div class="hud" id="pp"><div class="l1">Perfect Perfect</div><div class="l2">&times;2 BONUS</div></div>
+
+    <section class="screen" id="title">
+      <p class="kicker">GYMNASIUM B &middot; AFTER HOURS</p>
+      <h1>Dead Ball</h1>
+      <p class="lede">You stayed late to shoot free throws. The referee never went home.</p>
+      <ul class="rules">
+        <li><b>Miss</b> and he takes a step toward you.</li>
+        <li><b>Swish</b> and he backs off one. <b>Perfect on both meters</b> scores double.</li>
+        <li><b>Five steps</b> and he's on you.</li>
+        <li><b>Ten seconds</b> per shot. That's the rule.</li>
+        <li><b>3 in a row</b>: you're on fire, +1 a shot, and a dead light comes back.</li>
+        <li><b>4 in a row</b>: bank a timeout. It cancels his next step.</li>
+      </ul>
+      <div class="row">
+        <span class="start">PRESS START</span>
+        <span class="meta">SPACE, CLICK OR TAP &middot; LOCK AIM, THEN POWER<br><button type="button" id="resBtn" class="resbtn">RESOLUTION <span id="resLbl">960&times;720</span> &middot; R</button><br>MEMORY CARD SLOT 1 &middot; BEST <span id="tBest">00</span></span>
+      </div>
+    </section>
+
+    <section class="screen" id="over" hidden>
+      <p class="kicker">FINAL WHISTLE</p>
+      <h1>Fouled Out</h1>
+      <p class="stat"><em id="oMade">0</em> points &middot; best <span id="oBest">0</span></p>
+      <div class="row">
+        <span class="start">PRESS START</span>
+        <span class="meta">HE'LL BE BACK ON THE BASELINE</span>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ================= framebuffer ================= */
+const FOV = 68 * Math.PI / 180, NEAR = 0.08, FAR = 30;
+const canvas = document.getElementById('screen');
+const g2 = canvas.getContext('2d', { alpha: false });
+const RES = [960, 640, 320];
+let W, H, HW, HH, FOC, K, SN, IMG, FB, ZB;
+function setRes(w) {
+  W = w; H = Math.round(w * 3 / 4); HW = W / 2; HH = H / 2; FOC = HH / Math.tan(FOV / 2);
+  K = W / 320; SN = Math.max(1, K * 0.5); // snap vertices to a coarse grid to keep the PS1 wobble
+  canvas.width = W; canvas.height = H; canvas.style.imageRendering = W <= 320 ? 'pixelated' : 'auto';
+  IMG = g2.createImageData(W, H); FB = new Uint32Array(IMG.data.buffer); ZB = new Float32Array(W * H);
+  try { localStorage.setItem('deadball.res', String(W)); } catch (e) {}
+  const lbl = document.getElementById('resLbl'); if (lbl) lbl.textContent = W + '\u00d7' + H;
+}
+let savedRes = 960; try { savedRes = parseInt(localStorage.getItem('deadball.res') || '960', 10); } catch (e) {}
+setRes(RES.includes(savedRes) ? savedRes : 960);
+const BAY = new Float32Array([0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5].map(v => (v + 0.5) / 16 - 0.5));
+const Q8 = new Uint8Array(32); for (let i = 0; i < 32; i++) Q8[i] = Math.round(i * 255 / 31);
+const NOI = new Float32Array(4096); for (let i = 0; i < 4096; i++) NOI[i] = Math.random() - 0.5;
+const RM = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let fogS = 6, fogInv = 1 / 16, fogR = 0.016, fogG = 0.02, fogB = 0.022;
+let GTR = 1, GTG = 1, GTB = 1, noiseAmt = 0, noiseOff = 0;
+const pk = (r, g, b) => (0xff000000 | (b << 16) | (g << 8) | r) >>> 0;
+
+/* ================= textures ================= */
+const TEX = [];
+function mkTex(w, h) {
+  const t = { w, h, wm: w - 1, hm: h - 1, r: new Float32Array(w * h), g: new Float32Array(w * h), b: new Float32Array(w * h), a: new Uint8Array(w * h).fill(1), id: TEX.length };
+  TEX.push(t); return t;
+}
+function h2(x, y) { let n = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263); n = Math.imul(n ^ (n >>> 13), 1274126177); return ((n ^ (n >>> 16)) >>> 0) / 4294967296; }
+function vn(x, y, p) {
+  const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy;
+  const wr = a => p ? ((a % p) + p) % p : a;
+  const x0 = wr(ix), x1 = wr(ix + 1), y0 = wr(iy), y1 = wr(iy + 1);
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+  const a = h2(x0, y0), b = h2(x1, y0), c = h2(x0, y1), d = h2(x1, y1);
+  return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+}
+function paint(T, fn) {
+  for (let y = 0; y < T.h; y++) for (let x = 0; x < T.w; x++) {
+    const c = fn(x, y), i = y * T.w + x;
+    T.r[i] = c[0]; T.g[i] = c[1]; T.b[i] = c[2]; T.a[i] = c.length > 3 ? c[3] : 1;
+  }
+  return T;
+}
+function solid(w, h, r, g, b, n = 0.1, seed = 1) {
+  return paint(mkTex(w, h), (x, y) => { const k = 1 + n * (h2(x + seed * 97, y + seed * 31) - 0.5) * 2; return [r * k, g * k, b * k]; });
+}
+function setT(T, x, y, c, mix = 1) {
+  x = Math.floor(x); y = Math.floor(y);
+  if (x < 0 || y < 0 || x >= T.w || y >= T.h) return;
+  const i = y * T.w + x;
+  T.r[i] += (c[0] - T.r[i]) * mix; T.g[i] += (c[1] - T.g[i]) * mix; T.b[i] += (c[2] - T.b[i]) * mix;
+}
+
+// --- court floor: 256px over 16m x 16m (x -8..8, z -4..12)
+const tCourt = mkTex(256, 256);
+{
+  const T = tCourt;
+  paint(T, (x, y) => {
+    const pkI = x >> 1, off = h2(pkI, 7) * 64, yy = y + off;
+    const seg = Math.floor(yy / 48);
+    const tone = 0.8 + h2(pkI, seg) * 0.2;
+    const grain = 0.9 + 0.12 * vn(x * 0.5, y * 0.09);
+    let k = tone * grain * (0.72 + 0.4 * vn(x * 0.05, y * 0.05));
+    if ((yy % 48) < 1) k *= 0.62;
+    if ((x & 1) === 0 && h2(x, y) < 0.3) k *= 0.9;
+    return [0.56 * k, 0.35 * k, 0.19 * k];
+  });
+  const TX = x => (x + 8) * 16, TY = z => (z + 4) * 16;
+  // lane paint
+  for (let y = Math.ceil(TY(-1.6)); y <= Math.floor(TY(4.2)); y++)
+    for (let x = Math.ceil(TX(-2.45)); x <= Math.floor(TX(2.45)); x++) {
+      const i = y * 256 + x, k = T.r[i] / 0.56;
+      T.r[i] = 0.4 * k; T.g[i] = 0.075 * k; T.b[i] = 0.07 * k;
+    }
+  const LINE = [0.8, 0.77, 0.67];
+  const dot = (x, y) => setT(T, x, y, LINE, 0.85 + 0.15 * h2(x | 0, y | 0));
+  const line = (x0, y0, x1, y1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0)) * 2; for (let i = 0; i <= n; i++) dot(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n); };
+  line(0, TY(-1.6), 255, TY(-1.6));                              // baseline
+  line(TX(-7.6), TY(-1.6), TX(-7.6), 255); line(TX(7.6), TY(-1.6), TX(7.6), 255); // sidelines
+  line(TX(-2.45), TY(-1.6), TX(-2.45), TY(4.2)); line(TX(2.45), TY(-1.6), TX(2.45), TY(4.2)); // lane
+  line(TX(-2.45), TY(4.2), TX(2.45), TY(4.2));                     // free throw line
+  for (const z of [0.5, 1.4, 2.3, 3.2]) { line(TX(-2.45) - 3, TY(z), TX(-2.45), TY(z)); line(TX(2.45), TY(z), TX(2.45) + 3, TY(z)); }
+  { // free throw circle, dashed inside the lane
+    const cx = TX(0), cy = TY(4.2), r = 1.8 * 16;
+    for (let a = 0; a < Math.PI * 2; a += 0.01) { const y = cy + Math.sin(a) * r; if (y < cy && Math.floor(a * 9) % 2) continue; dot(cx + Math.cos(a) * r, y); }
+  }
+  { // restricted arc
+    const cx = TX(0), cy = TY(0), r = 1.22 * 16;
+    for (let a = 0; a <= Math.PI; a += 0.02) dot(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+  }
+  { // three point line
+    const cx = TX(0), cy = TY(0), r = 7.24 * 16, cxw = 6.7 * 16, dy = Math.sqrt(r * r - cxw * cxw);
+    line(cx - cxw, TY(-1.6), cx - cxw, cy + dy); line(cx + cxw, TY(-1.6), cx + cxw, cy + dy);
+    for (let a = 0; a <= Math.PI; a += 0.003) { const x = Math.cos(a) * r, y = Math.sin(a) * r; if (Math.abs(x) <= cxw && y >= dy - 0.5) dot(cx + x, cy + y); }
+  }
+  // stains, and a drag trail from the back door toward the lane
+  const STAIN = [0.11, 0.025, 0.02];
+  const blob = (wx, wz, rad, amt) => {
+    const cx = TX(wx), cy = TY(wz), r = rad * 16;
+    for (let y = cy - r * 1.4; y < cy + r * 1.4; y++) for (let x = cx - r * 1.4; x < cx + r * 1.4; x++) {
+      const d = Math.hypot(x - cx, y - cy) / r + (vn(x * 0.3, y * 0.3) - 0.5) * 0.7;
+      if (d < 1) setT(T, x, y, STAIN, amt * (1 - d * 0.5));
+    }
+  };
+  blob(0.5, 2.9, 0.45, 0.55); blob(-1.1, 3.7, 0.22, 0.5); blob(1.6, 0.6, 0.3, 0.45);
+  for (let i = 0; i <= 260; i++) {
+    const t = i / 260, wx = 5.1 + (1.6 - 5.1) * t + Math.sin(t * 9) * 0.25, wz = -3.9 + (0.6 + 3.9) * t;
+    if (vn(i * 0.15, 3) < 0.35) continue;
+    setT(T, TX(wx), TY(wz), STAIN, 0.5); setT(T, TX(wx) + 1, TY(wz), STAIN, 0.35);
+  }
+}
+
+// --- cinder block walls, 64px per 1.6m
+function blockWall(base, seed) {
+  return paint(mkTex(64, 64), (x, y) => {
+    const row = y >> 3, xo = (x + (row & 1) * 8) & 63;
+    const mortar = (y & 7) === 0 || (xo & 15) === 0;
+    let k = 0.86 + 0.22 * vn(x * 0.25 + seed, y * 0.25, 16) + 0.08 * (h2(x + seed, y) - 0.5);
+    const streak = vn(x * 0.5 + seed, y * 0.0625, 32);
+    if (streak > 0.62) k *= 1 - (streak - 0.62) * 1.3;
+    if (mortar) k *= 0.7;
+    return [base[0] * k, base[1] * k, base[2] * k];
+  });
+}
+const tWallU = blockWall([0.5, 0.56, 0.49], 3);
+const tWallL = blockWall([0.3, 0.1, 0.09], 11);
+const tCeil = paint(mkTex(32, 32), (x, y) => { let k = 0.85 + 0.25 * vn(x * 0.25, y * 0.25, 8); if (x % 16 === 0 || y % 16 === 0) k *= 0.55; return [0.15 * k, 0.15 * k, 0.16 * k]; });
+const tWood = paint(mkTex(32, 32), (x, y) => { const pl = y >> 3; let k = 0.8 + 0.2 * h2(pl, 3) + 0.1 * vn(x * 0.4, y * 0.1 + pl, 0); if ((y & 7) === 0) k *= 0.5; return [0.46 * k, 0.32 * k, 0.19 * k]; });
+const tMetal = solid(8, 8, 0.3, 0.31, 0.32, 0.12, 2);
+const tRim = solid(8, 8, 0.78, 0.24, 0.07, 0.1, 4);
+const tVoid = solid(4, 4, 0.004, 0.004, 0.004, 0, 5);
+const tBoard = paint(mkTex(64, 64), (x, y) => {
+  let c = [0.78, 0.8, 0.78].map(v => v * (0.88 + 0.1 * vn(x * 0.2, y * 0.2) - y * 0.0015));
+  if (x < 2 || x > 61 || y < 2 || y > 61) c = [0.12, 0.12, 0.13];
+  const inX = x >= 22 && x <= 42, inY = y >= 28 && y <= 55;
+  if (inX && inY && (x === 22 || x === 42 || y === 28 || y === 55)) c = [0.66, 0.1, 0.09];
+  // crack
+  const cy = 10 + x * 0.35 + Math.sin(x * 0.6) * 1.5;
+  if (x > 4 && x < 30 && Math.abs(y - cy) < 0.6) c = c.map(v => v * 0.35);
+  return c;
+});
+const tNet = paint(mkTex(16, 16), (x, y) => (((x + y) & 7) === 0 || ((x - y) & 7) === 0) ? [0.8, 0.8, 0.74, 1] : [0, 0, 0, 0]);
+const tBall = paint(mkTex(32, 16), (x, y) => {
+  if (y === 8 || x % 8 === 0) return [0.07, 0.035, 0.02];
+  const k = 0.85 + 0.25 * h2(x, y);
+  return [0.78 * k, 0.37 * k, 0.15 * k];
+});
+const tStripe = paint(mkTex(16, 16), (x, y) => {
+  const k = 0.85 + 0.2 * h2(x, y + 40) - (y / 16) * 0.1;
+  return ((x >> 1) & 1) ? [0.05, 0.05, 0.05] : [0.82 * k, 0.8 * k, 0.72 * k];
+});
+const tPants = solid(8, 8, 0.05, 0.05, 0.055, 0.2, 6);
+const tSkinRef = solid(8, 8, 0.78, 0.76, 0.69, 0.08, 7);
+const tFace = paint(mkTex(32, 32), (x, y) => {
+  let k = 0.9 + 0.1 * h2(x, y + 9) - Math.abs(x - 16) * 0.008;
+  let c = [0.8 * k, 0.78 * k, 0.71 * k];
+  const ell = (cx, cy, rx, ry) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2;
+  const e1 = ell(10, 13, 3.2, 4.4), e2 = ell(22, 14.5, 3.2, 4.6), m = ell(16, 25, 2.3, 4.8);
+  if (e1 < 2.2 || e2 < 2.2) c = [0.5, 0.2, 0.18];
+  if (e1 < 1 || e2 < 1 || m < 1) c = [0.02, 0, 0];
+  if (x >= 15 && x <= 16 && y >= 16 && y <= 20) c = c.map(v => v * 0.75);
+  return c;
+});
+const tCrowdHead = solid(8, 8, 0.45, 0.44, 0.42, 0.08, 8);
+const tCloth = solid(8, 8, 0.07, 0.07, 0.08, 0.3, 9);
+const tSkinP = solid(8, 8, 0.5, 0.36, 0.27, 0.08, 10);
+const tLight = paint(mkTex(16, 8), (x, y) => (x === 0 || x === 15 || y === 0 || y === 7 || x === 8) ? [0.35, 0.37, 0.35] : [1, 1, 0.94]);
+const tExit = mkTex(32, 16);
+const tScore = mkTex(128, 64);
+
+// 3x5 pixel font for the scoreboard and exit sign
+const FONT = {
+  '0':'111101101101111','1':'010110010010111','2':'111001111100111','3':'111001111001111','4':'101101111001001',
+  '5':'111100111001111','6':'111100111101111','7':'111001001001001','8':'111101111101111','9':'111101111001111',
+  'H':'101101111101101','O':'111101101101111','M':'101111111101101','E':'111100110100111','G':'111100101101111',
+  'U':'101101101101111','S':'111100111001111','T':'111010010010010','X':'101101010101101','I':'111010010010111','L':'100100100100111',':':'000010000010000'
+};
+function text(T, str, x, y, s, col) {
+  for (const ch of str) {
+    const gph = FONT[ch];
+    if (gph) for (let j = 0; j < 5; j++) for (let i = 0; i < 3; i++) if (gph[j * 3 + i] === '1')
+      for (let sy = 0; sy < s; sy++) for (let sx = 0; sx < s; sx++) setT(T, x + i * s + sx, y + j * s + sy, col);
+    x += 4 * s;
+  }
+}
+paint(tExit, (x, y) => (x === 0 || x === 31 || y === 0 || y === 15) ? [0.2, 0.2, 0.2] : [0.08, 0.01, 0.01]);
+text(tExit, 'EXIT', 1, 3, 2, [1, 0.12, 0.08]);
+
+/* ================= mesh building ================= */
+function tri(m, a, b, c, ta, tb, tc, tex, f, hint, e) {
+  const ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2], vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
+  let nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+  const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+  if (hint && nx * hint[0] + ny * hint[1] + nz * hint[2] < 0) { [b, c] = [c, b]; [tb, tc] = [tc, tb]; nx = -nx; ny = -ny; nz = -nz; }
+  m.push({ p: [a[0], a[1], a[2], b[0], b[1], b[2], c[0], c[1], c[2]], uv: [ta[0], ta[1], tb[0], tb[1], tc[0], tc[1]], n: [nx, ny, nz], t: tex.id, f: f | 0, e: e === undefined ? -1 : e });
+}
+function quad(m, a, b, c, d, ta, tb, tc, td, tex, f, hint, e) { tri(m, a, b, c, ta, tb, tc, tex, f, hint, e); tri(m, a, c, d, ta, tc, td, tex, f, hint, e); }
+function plane(m, O, U, V, nu, nv, tex, uvf, f, hint, e) {
+  const P = (i, j) => [O[0] + U[0] * i / nu + V[0] * j / nv, O[1] + U[1] * i / nu + V[1] * j / nv, O[2] + U[2] * i / nu + V[2] * j / nv];
+  for (let i = 0; i < nu; i++) for (let j = 0; j < nv; j++) {
+    const a = P(i, j), b = P(i + 1, j), c = P(i + 1, j + 1), d = P(i, j + 1);
+    quad(m, a, b, c, d, uvf(i / nu, j / nv, a), uvf((i + 1) / nu, j / nv, b), uvf((i + 1) / nu, (j + 1) / nv, c), uvf(i / nu, (j + 1) / nv, d), tex, f, hint, e);
+  }
+}
+function box(m, x0, y0, z0, x1, y1, z1, tex, o = {}) {
+  const faces = [
+    ['pz', [x0, y0, z1], [x1 - x0, 0, 0], [0, y1 - y0, 0], [0, 0, 1]],
+    ['nz', [x1, y0, z0], [x0 - x1, 0, 0], [0, y1 - y0, 0], [0, 0, -1]],
+    ['px', [x1, y0, z1], [0, 0, z0 - z1], [0, y1 - y0, 0], [1, 0, 0]],
+    ['nx', [x0, y0, z0], [0, 0, z1 - z0], [0, y1 - y0, 0], [-1, 0, 0]],
+    ['py', [x0, y1, z1], [x1 - x0, 0, 0], [0, 0, z0 - z1], [0, 1, 0]],
+    ['ny', [x0, y0, z0], [x1 - x0, 0, 0], [0, 0, z1 - z0], [0, -1, 0]]
+  ];
+  for (const [k, O, U, V, hint] of faces) {
+    if (o.skip && o.skip.includes(k)) continue;
+    const lu = Math.hypot(...U), lv = Math.hypot(...V);
+    const nu = o.sub ? Math.max(1, Math.ceil(lu / o.sub)) : 1, nv = o.sub ? Math.max(1, Math.ceil(lv / o.sub)) : 1;
+    const ws = o.ws;
+    plane(m, O, U, V, nu, nv, o[k] || tex, (s, t) => ws ? [s * lu / ws, (1 - t) * lv / ws] : [s, 1 - t], o.f, hint, o.e);
+  }
+}
+function sphere(m, r, seg, rings, tex) {
+  const P = (i, j) => { const th = i / seg * Math.PI * 2, ph = j / rings * Math.PI; return [r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph), r * Math.sin(ph) * Math.sin(th)]; };
+  for (let j = 0; j < rings; j++) for (let i = 0; i < seg; i++) {
+    const a = P(i, j), b = P(i + 1, j), c = P(i + 1, j + 1), d = P(i, j + 1);
+    const hint = [(a[0] + c[0]), (a[1] + c[1]), (a[2] + c[2])];
+    quad(m, a, b, c, d, [i / seg, j / rings], [(i + 1) / seg, j / rings], [(i + 1) / seg, (j + 1) / rings], [i / seg, (j + 1) / rings], tex, 0, hint);
+  }
+}
+const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const norm = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+function beam(m, a, b, w, tex) {
+  const d = norm(sub3(b, a));
+  const s = norm(Math.abs(d[1]) > 0.95 ? cross(d, [1, 0, 0]) : cross(d, [0, 1, 0]));
+  const u = cross(s, d);
+  const C = (p, i, j) => [p[0] + (s[0] * i + u[0] * j) * w, p[1] + (s[1] * i + u[1] * j) * w, p[2] + (s[2] * i + u[2] * j) * w];
+  const sides = [[1, 1, 1, -1, s], [-1, 1, 1, 1, u], [-1, -1, -1, 1, [-s[0], -s[1], -s[2]]], [1, -1, -1, -1, [-u[0], -u[1], -u[2]]]];
+  const uv = [[0, 0], [1, 0], [1, 1], [0, 1]];
+  for (const [i0, j0, i1, j1, hint] of sides) quad(m, C(a, i0, j0), C(a, i1, j1), C(b, i1, j1), C(b, i0, j0), ...uv, tex, 0, hint);
+  quad(m, C(b, 1, 1), C(b, -1, 1), C(b, -1, -1), C(b, 1, -1), ...uv, tex, 0, d);
+}
+
+/* ================= lights ================= */
+const FIX = { r: 0.84, g: 1.0, b: 0.88 };
+const LIGHTS = [
+  { x: 0, y: 8.4, z: 0.8, i: 12, k: 0.2, rate: 0.02 },
+  { x: 0, y: 8.4, z: 5.6, i: 7, k: 0.2, rate: 0.2 },
+  { x: -5, y: 8.4, z: 2.5, i: 6.5, k: 0.2, rate: 0.06 },
+  { x: 5, y: 8.4, z: 2.5, i: 6.5, k: 0.2, rate: 0.06 },
+  { x: 0, y: 8.4, z: 10, i: 5, k: 0.2, rate: 0.1 },
+  { x: 5.2, y: 2.6, z: -3.5, i: 0.9, k: 2.2, rate: 0, r: 1, g: 0.12, b: 0.08 },
+  { x: 0, y: 0, z: 0, i: 1.4, k: 1.6, rate: 0, r: 1, g: 0.5, b: 0.15 } // the ball when you're on fire
+].map(L => Object.assign({ r: FIX.r, g: FIX.g, b: FIX.b, cur: 0, alive: 1, fl: 0 }, L));
+const EM = new Float32Array(8); // emissive levels: 0-4 fixtures, 5 scoreboard, 6 exit
+let AMB = 1;
+
+function lightAt(x, y, z, nx, ny, nz, ds, O) {
+  let r = 0.045 * AMB, g = 0.05 * AMB, b = 0.056 * AMB;
+  for (let k = 0; k < LIGHTS.length; k++) {
+    const L = LIGHTS[k]; if (L.cur <= 0.001) continue;
+    const dx = L.x - x, dy = L.y - y, dz = L.z - z, d2 = dx * dx + dy * dy + dz * dz, d = Math.sqrt(d2);
+    let nd = (nx * dx + ny * dy + nz * dz) / d; if (ds) nd = Math.abs(nd);
+    if (nd <= 0) continue;
+    const a = L.cur * nd / (1 + d2 * L.k);
+    r += L.r * a; g += L.g * a; b += L.b * a;
+  }
+  O[5] = r; O[6] = g; O[7] = b;
+}
+
+/* ================= camera & raster ================= */
+const CAM = { ex: 0, ey: 0, ez: 0, rx: 1, ry: 0, rz: 0, ux: 0, uy: 1, uz: 0, fx: 0, fy: 0, fz: -1 };
+function setCam(e, t) {
+  const f = norm(sub3(t, e)), r = norm(cross(f, [0, 1, 0])), u = cross(r, f);
+  CAM.ex = e[0]; CAM.ey = e[1]; CAM.ez = e[2];
+  CAM.fx = f[0]; CAM.fy = f[1]; CAM.fz = f[2]; CAM.rx = r[0]; CAM.ry = r[1]; CAM.rz = r[2]; CAM.ux = u[0]; CAM.uy = u[1]; CAM.uz = u[2];
+}
+function raster(A, B, C, T, fl) {
+  const sn = SN;
+  const ax = Math.round((HW + A[0] / A[2] * FOC) / sn) * sn, ay = Math.round((HH - A[1] / A[2] * FOC) / sn) * sn;
+  const bx = Math.round((HW + B[0] / B[2] * FOC) / sn) * sn, by = Math.round((HH - B[1] / B[2] * FOC) / sn) * sn;
+  const cx = Math.round((HW + C[0] / C[2] * FOC) / sn) * sn, cy = Math.round((HH - C[1] / C[2] * FOC) / sn) * sn;
+  const area = (bx - ax) * (cy - ay) - (cx - ax) * (by - ay);
+  if (area === 0) return;
+  const minX = Math.max(0, Math.floor(Math.min(ax, bx, cx))), maxX = Math.min(W - 1, Math.ceil(Math.max(ax, bx, cx)));
+  const minY = Math.max(0, Math.floor(Math.min(ay, by, cy))), maxY = Math.min(H - 1, Math.ceil(Math.max(ay, by, cy)));
+  if (minX > maxX || minY > maxY) return;
+  const ia = 1 / area;
+  const A1 = (by - cy) * ia, A2 = (cx - bx) * ia, A0 = (bx * cy - cx * by) * ia;
+  const B1 = (cy - ay) * ia, B2 = (ax - cx) * ia, B0 = (cx * ay - ax * cy) * ia;
+  const C1 = (ay - by) * ia, C2 = (bx - ax) * ia, C0 = (ax * by - bx * ay) * ia;
+  const za = 1 / A[2], zbb = 1 / B[2], zc = 1 / C[2];
+  const tw = T.w, th = T.h, wm = T.wm, hm = T.hm, TR = T.r, TG = T.g, TBL = T.b, TA = T.a, cut = fl & 4;
+  const nA = noiseAmt;
+  for (let y = minY; y <= maxY; y++) {
+    const py = y + 0.5, px = minX + 0.5;
+    let wa = A0 + A1 * px + A2 * py, wb = B0 + B1 * px + B2 * py, wc = C0 + C1 * px + C2 * py;
+    // clip this row to the span where all three barycentrics are >= 0
+    let x0 = minX, x1 = maxX;
+    if (A1 > 0) { if (wa < -1e-6) x0 = Math.max(x0, minX + Math.ceil((-1e-6 - wa) / A1)); } else if (A1 < 0) x1 = Math.min(x1, minX + Math.floor((wa + 1e-6) / -A1)); else if (wa < -1e-6) continue;
+    if (B1 > 0) { if (wb < -1e-6) x0 = Math.max(x0, minX + Math.ceil((-1e-6 - wb) / B1)); } else if (B1 < 0) x1 = Math.min(x1, minX + Math.floor((wb + 1e-6) / -B1)); else if (wb < -1e-6) continue;
+    if (C1 > 0) { if (wc < -1e-6) x0 = Math.max(x0, minX + Math.ceil((-1e-6 - wc) / C1)); } else if (C1 < 0) x1 = Math.min(x1, minX + Math.floor((wc + 1e-6) / -C1)); else if (wc < -1e-6) continue;
+    if (x0 > x1) continue;
+    const skip = x0 - minX; wa += A1 * skip; wb += B1 * skip; wc += C1 * skip;
+    let i = y * W + x0;
+    const yb = (y & 3) << 2;
+    for (let x = x0; x <= x1; x++, i++, wa += A1, wb += B1, wc += C1) {
+      const iz = wa * za + wb * zbb + wc * zc;
+      if (iz <= ZB[i]) continue;
+      const u = wa * A[3] + wb * B[3] + wc * C[3], v = wa * A[4] + wb * B[4] + wc * C[4];
+      const ti = (((v * th + 4096) | 0) & hm) * tw + (((u * tw + 4096) | 0) & wm);
+      if (cut && TA[ti] === 0) continue;
+      ZB[i] = iz;
+      let r = TR[ti] * (wa * A[5] + wb * B[5] + wc * C[5]) * GTR;
+      let g = TG[ti] * (wa * A[6] + wb * B[6] + wc * C[6]) * GTG;
+      let b = TBL[ti] * (wa * A[7] + wb * B[7] + wc * C[7]) * GTB;
+      let fo = (wa * A[2] + wb * B[2] + wc * C[2] - fogS) * fogInv;
+      fo = fo < 0 ? 0 : fo > 1 ? 1 : fo;
+      r += (fogR - r) * fo; g += (fogG - g) * fo; b += (fogB - b) * fo;
+      let d = BAY[(x & 3) | yb];
+      if (nA) d += NOI[(i + noiseOff) & 4095] * nA;
+      let qr = (r * 31 + 0.5 + d) | 0, qg = (g * 31 + 0.5 + d) | 0, qb = (b * 31 + 0.5 + d) | 0;
+      qr = qr < 0 ? 0 : qr > 31 ? 31 : qr; qg = qg < 0 ? 0 : qg > 31 ? 31 : qg; qb = qb < 0 ? 0 : qb > 31 ? 31 : qb;
+      FB[i] = 0xff000000 | (Q8[qb] << 16) | (Q8[qg] << 8) | Q8[qr];
+    }
+  }
+}
+function clipDraw(A, B, C, T, fl) {
+  const ia = A[2] > NEAR, ib = B[2] > NEAR, ic = C[2] > NEAR;
+  if (ia && ib && ic) { raster(A, B, C, T, fl); return; }
+  if (!ia && !ib && !ic) return;
+  const poly = [A, B, C], out = [];
+  for (let k = 0; k < 3; k++) {
+    const P = poly[k], Q = poly[(k + 1) % 3], pin = P[2] > NEAR, qin = Q[2] > NEAR;
+    if (pin) out.push(P);
+    if (pin !== qin) { const t = (NEAR - P[2]) / (Q[2] - P[2]), R = new Float32Array(8); for (let j = 0; j < 8; j++) R[j] = P[j] + (Q[j] - P[j]) * t; out.push(R); }
+  }
+  for (let k = 1; k + 1 < out.length; k++) raster(out[0], out[k], out[k + 1], T, fl);
+}
+const VA = new Float32Array(8), VB = new Float32Array(8), VC = new Float32Array(8), V3 = [VA, VB, VC], WP = new Float32Array(9);
+function drawMesh(m, M, tint) {
+  const ex = CAM.ex, ey = CAM.ey, ez = CAM.ez;
+  const tr = tint ? tint[0] : 1, tg = tint ? tint[1] : 1, tb = tint ? tint[2] : 1;
+  for (let k = 0; k < m.length; k++) {
+    const t = m[k], p = t.p;
+    for (let v = 0; v < 3; v++) {
+      let x = p[v * 3], y = p[v * 3 + 1], z = p[v * 3 + 2];
+      if (M) { const X = M[0] * x + M[1] * y + M[2] * z + M[3], Y = M[4] * x + M[5] * y + M[6] * z + M[7], Z = M[8] * x + M[9] * y + M[10] * z + M[11]; x = X; y = Y; z = Z; }
+      WP[v * 3] = x; WP[v * 3 + 1] = y; WP[v * 3 + 2] = z;
+    }
+    let nx = t.n[0], ny = t.n[1], nz = t.n[2];
+    if (M) { const X = M[0] * nx + M[1] * ny + M[2] * nz, Y = M[4] * nx + M[5] * ny + M[6] * nz, Z = M[8] * nx + M[9] * ny + M[10] * nz, l = Math.hypot(X, Y, Z) || 1; nx = X / l; ny = Y / l; nz = Z / l; }
+    const ds = t.f & 1;
+    if (!ds && nx * (ex - WP[0]) + ny * (ey - WP[1]) + nz * (ez - WP[2]) <= 0) continue;
+    let far = 0;
+    for (let v = 0; v < 3; v++) {
+      const O = V3[v], dx = WP[v * 3] - ex, dy = WP[v * 3 + 1] - ey, dz = WP[v * 3 + 2] - ez;
+      O[0] = dx * CAM.rx + dy * CAM.ry + dz * CAM.rz;
+      O[1] = dx * CAM.ux + dy * CAM.uy + dz * CAM.uz;
+      O[2] = dx * CAM.fx + dy * CAM.fy + dz * CAM.fz;
+      O[3] = t.uv[v * 2]; O[4] = t.uv[v * 2 + 1];
+      if (O[2] > FAR) far++;
+      if (t.f & 2) { const L = t.e >= 0 ? EM[t.e] : 1; O[5] = L * tr; O[6] = L * tg; O[7] = L * tb; }
+      else { lightAt(WP[v * 3], WP[v * 3 + 1], WP[v * 3 + 2], nx, ny, nz, ds, O); O[5] *= tr; O[6] *= tg; O[7] *= tb; }
+    }
+    if (far === 3) continue;
+    clipDraw(VA, VB, VC, TEX[t.t], t.f);
+  }
+}
+// transforms
+const rotY = a => { const c = Math.cos(a), s = Math.sin(a); return [c, 0, s, 0, 1, 0, -s, 0, c]; };
+const rotZ = a => { const c = Math.cos(a), s = Math.sin(a); return [c, -s, 0, s, c, 0, 0, 0, 1]; };
+const rotX = a => { const c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, c, -s, 0, s, c]; };
+const mul3 = (A, B) => { const R = new Array(9); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) R[i * 3 + j] = A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j]; return R; };
+const makeM = (R, t, s = 1) => [R[0] * s, R[1] * s, R[2] * s, t[0], R[3] * s, R[4] * s, R[5] * s, t[1], R[6] * s, R[7] * s, R[8] * s, t[2]];
+
+/* ================= scene ================= */
+const ROOM = [];
+plane(ROOM, [-8, 0, -4], [16, 0, 0], [0, 0, 16], 16, 16, tCourt, (s, t, P) => [(P[0] + 8) / 16, (P[2] + 4) / 16], 0, [0, 1, 0]);
+plane(ROOM, [-8, 0, -4], [16, 0, 0], [0, 1.6, 0], 10, 1, tWallL, (s, t, P) => [(P[0] + 8) / 1.6, -P[1] / 1.6], 0, [0, 0, 1]);
+plane(ROOM, [-8, 1.6, -4], [16, 0, 0], [0, 7.4, 0], 10, 5, tWallU, (s, t, P) => [(P[0] + 8) / 1.6, -(P[1] - 1.6) / 1.6], 0, [0, 0, 1]);
+for (const sx of [-8, 8]) {
+  const hint = [-Math.sign(sx), 0, 0];
+  plane(ROOM, [sx, 0, -4], [0, 0, 16], [0, 1.6, 0], 10, 1, tWallL, (s, t, P) => [(P[2] + 4) / 1.6, -P[1] / 1.6], 0, hint);
+  plane(ROOM, [sx, 1.6, -4], [0, 0, 16], [0, 7.4, 0], 10, 5, tWallU, (s, t, P) => [(P[2] + 4) / 1.6, -(P[1] - 1.6) / 1.6], 0, hint);
+}
+plane(ROOM, [-8, 9, -4], [16, 0, 0], [0, 0, 16], 8, 8, tCeil, (s, t, P) => [(P[0] + 8) / 2, (P[2] + 4) / 2], 0, [0, -1, 0]);
+// bleachers
+for (let k = 0; k < 4; k++) box(ROOM, -5.2 - 0.6 * (k + 1), 0, -2.5, -5.2 - 0.6 * k, 0.45 * (k + 1), 8.5, tWood, { ws: 1, sub: 1.2, skip: ['ny'] });
+// light fixtures
+for (let i = 0; i < 5; i++) { const L = LIGHTS[i]; plane(ROOM, [L.x - 0.7, 8.9, L.z - 0.18], [1.4, 0, 0], [0, 0, 0.36], 1, 1, tLight, (s, t) => [s, t], 2, [0, -1, 0], i); }
+// back door + exit sign
+plane(ROOM, [4.6, 0, -3.97], [1.2, 0, 0], [0, 2.2, 0], 1, 1, tVoid, (s, t) => [s, t], 0, [0, 0, 1]);
+box(ROOM, 4.5, 0, -4, 4.6, 2.3, -3.93, tMetal); box(ROOM, 5.8, 0, -4, 5.9, 2.3, -3.93, tMetal); box(ROOM, 4.5, 2.2, -4, 5.9, 2.3, -3.93, tMetal);
+plane(ROOM, [4.8, 2.4, -3.97], [0.8, 0, 0], [0, 0.4, 0], 1, 1, tExit, (s, t) => [s, 1 - t], 2, [0, 0, 1], 6);
+// scoreboard
+box(ROOM, -1.75, 5.25, -4, 1.75, 7.15, -3.9, tMetal, { skip: ['nz'] });
+plane(ROOM, [-1.6, 5.4, -3.89], [3.2, 0, 0], [0, 1.6, 0], 2, 1, tScore, (s, t) => [s, 1 - t], 2, [0, 0, 1], 5);
+// hoop assembly
+box(ROOM, -0.915, 2.9, -0.45, 0.915, 3.97, -0.4, tMetal, { pz: tBoard });
+box(ROOM, -0.07, 3.35, -4, 0.07, 3.5, -0.45, tMetal, { sub: 1.5 });
+beam(ROOM, [0, 2.2, -4], [0, 3.36, -1.4], 0.04, tMetal);
+box(ROOM, -0.05, 3.0, -0.4, 0.05, 3.05, -0.22, tRim);
+{
+  const RS = 16, R = 0.23;
+  for (let i = 0; i < RS; i++) {
+    const a0 = i / RS * Math.PI * 2, a1 = (i + 1) / RS * Math.PI * 2, am = (a0 + a1) / 2;
+    const p = (a, r, y) => [Math.cos(a) * r, y, Math.sin(a) * r];
+    quad(ROOM, p(a0, R, 3.03), p(a1, R, 3.03), p(a1, R, 3.065), p(a0, R, 3.065), [0, 0], [1, 0], [1, 1], [0, 1], tRim, 1, [Math.cos(am), 0, Math.sin(am)]);
+    quad(ROOM, p(a0, 0.212, 3.065), p(a1, 0.212, 3.065), p(a1, 0.245, 3.065), p(a0, 0.245, 3.065), [0, 0], [1, 0], [1, 1], [0, 1], tRim, 1, [0, 1, 0]);
+  }
+}
+
+// referee
+const REF = [], REF_HEAD = [];
+box(REF, -0.17, 0, -0.07, -0.03, 0.95, 0.07, tPants);
+box(REF, 0.03, 0, -0.07, 0.17, 0.95, 0.07, tPants);
+box(REF, -0.22, 0.95, -0.12, 0.22, 1.62, 0.12, tStripe);
+box(REF, -0.31, 0.55, -0.05, -0.23, 1.6, 0.05, tStripe);
+box(REF, 0.23, 0.55, -0.05, 0.31, 1.6, 0.05, tStripe);
+box(REF, -0.31, 0.3, -0.04, -0.24, 0.55, 0.04, tSkinRef);
+box(REF, 0.24, 0.3, -0.04, 0.31, 0.55, 0.04, tSkinRef);
+box(REF, -0.04, 1.62, -0.04, 0.04, 1.8, 0.04, tSkinRef);
+box(REF, -0.025, 1.36, 0.12, 0.025, 1.4, 0.16, tMetal);
+box(REF_HEAD, -0.12, -0.15, -0.13, 0.12, 0.17, 0.13, tSkinRef, { pz: tFace });
+
+// crowd
+const CROWD_BODY = [], CROWD_HEAD = [];
+box(CROWD_BODY, -0.2, 0, -0.12, 0.2, 0.6, 0.12, tCloth);
+box(CROWD_BODY, -0.19, -0.05, 0.12, 0.19, 0.11, 0.42, tCloth);
+box(CROWD_HEAD, -0.1, -0.02, -0.1, 0.1, 0.22, 0.1, tCrowdHead);
+const SEATS = [];
+for (let i = 0; i < 18; i++) {
+  const k = [0, 2, 1, 3, 2, 0, 1, 3][i % 8];
+  SEATS.push({ x: -5.2 - 0.6 * k - 0.32, y: 0.45 * (k + 1), z: -1.8 + h2(i, 4) * 9.4, roll: (h2(i, 9) - 0.5) * 0.35, s: 0.92 + h2(i, 13) * 0.16 });
+}
+
+const BALL = []; sphere(BALL, 0.12, 10, 8, tBall);
+const NET = [], ARMS = [];
+
+/* ================= scoreboard ================= */
+let scoreKey = '';
+function drawScore(made, miss, clock, step, tol = 0) {
+  const key = made + '|' + miss + '|' + clock + '|' + step + '|' + tol;
+  if (key === scoreKey) return; scoreKey = key;
+  paint(tScore, (x, y) => (x < 2 || x > 125 || y < 2 || y > 61) ? [0.05, 0.05, 0.05] : ((x + y) & 1) ? [0.02, 0, 0] : [0.12, 0.015, 0.01]);
+  const ON = [1, 0.3, 0.12], AMBER = [1, 0.62, 0.2];
+  text(tScore, 'HOME', 7, 6, 2, AMBER);
+  text(tScore, 'GUEST', 82, 6, 2, AMBER);
+  const pad = n => String(Math.min(99, n)).padStart(2, '0');
+  text(tScore, pad(made), 8, 22, 4, ON);
+  text(tScore, pad(miss), 90, 22, 4, ON);
+  text(tScore, '0:' + pad(clock), 48, 26, 2, ON);
+  for (let i = 0; i < 5; i++) { const c = i < step ? ON : [0.25, 0.04, 0.02]; for (let yy = 0; yy < 4; yy++) for (let xx = 0; xx < 4; xx++) setT(tScore, 45 + i * 8 + xx, 44 + yy, c); }
+  text(tScore, 'TOL', 8, 51, 1, AMBER); text(tScore, String(tol), 24, 51, 1, ON);
+  text(tScore, 'TOL', 104, 51, 1, AMBER); text(tScore, '0', 120, 51, 1, ON);
+}
+
+/* ================= audio ================= */
+let AC = null, MASTER, NOISE, humG, droneG;
+function audioInit() {
+  if (AC) { if (AC.state === 'suspended') AC.resume(); return; }
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; return; }
+  MASTER = AC.createGain(); MASTER.gain.value = 0.8;
+  const comp = AC.createDynamicsCompressor(); MASTER.connect(comp); comp.connect(AC.destination);
+  NOISE = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
+  const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const o1 = AC.createOscillator(); o1.type = 'sawtooth'; o1.frequency.value = 60;
+  const o2 = AC.createOscillator(); o2.type = 'square'; o2.frequency.value = 120.3;
+  const o2g = AC.createGain(); o2g.gain.value = 0.25;
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420;
+  humG = AC.createGain(); humG.gain.value = 0;
+  o1.connect(lp); o2.connect(o2g); o2g.connect(lp); lp.connect(humG); humG.connect(MASTER); o1.start(); o2.start();
+  const d1 = AC.createOscillator(), d2 = AC.createOscillator(); d1.frequency.value = 41; d2.frequency.value = 43.4;
+  droneG = AC.createGain(); droneG.gain.value = 0; d1.connect(droneG); d2.connect(droneG); droneG.connect(MASTER); d1.start(); d2.start();
+}
+function env(g, t, a, peak, dec) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dec); }
+function tone(type, f0, f1, dur, vol, delay = 0) {
+  if (!AC) return; const t = AC.currentTime + delay;
+  const o = AC.createOscillator(); o.type = type; o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  const g = AC.createGain(); env(g, t, 0.004, vol, dur); o.connect(g); g.connect(MASTER); o.start(t); o.stop(t + dur + 0.05);
+}
+function hiss(type, freq, q, dur, vol, delay = 0) {
+  if (!AC) return; const t = AC.currentTime + delay;
+  const s = AC.createBufferSource(); s.buffer = NOISE;
+  const f = AC.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const g = AC.createGain(); env(g, t, 0.005, vol, dur); s.connect(f); f.connect(g); g.connect(MASTER); s.start(t, Math.random()); s.stop(t + dur + 0.05);
+}
+const sfx = {
+  bounce(s) { const v = Math.min(1, s / 6); tone('sine', 125, 45, 0.15, 0.55 * v); hiss('lowpass', 900, 0.7, 0.05, 0.25 * v); },
+  clang(s) { const v = Math.min(1, s / 4) * 0.3; [523, 1297, 2089, 3301].forEach((f, i) => tone('sine', f, f * 0.994, 0.55 - i * 0.09, v / (1 + i * 0.6))); hiss('bandpass', 2600, 2, 0.04, v * 0.7); },
+  board(s) { const v = Math.min(1, s / 5); tone('sine', 95, 60, 0.12, 0.5 * v); hiss('lowpass', 650, 0.8, 0.09, 0.45 * v); },
+  swish() { hiss('bandpass', 3200, 0.8, 0.3, 0.25); hiss('highpass', 5200, 0.5, 0.2, 0.08, 0.05); },
+  whistle(pm, muffled) {
+    if (!AC) return; const t = AC.currentTime;
+    let out = MASTER;
+    if (muffled) { const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 650; lp.Q.value = 0.7; const mg = AC.createGain(); mg.gain.value = 0.35; lp.connect(mg); mg.connect(MASTER); out = lp; }
+    const o = AC.createOscillator(); o.frequency.value = 2950 * pm;
+    const lfo = AC.createOscillator(); lfo.frequency.value = 29; const lg = AC.createGain(); lg.gain.value = 190 * pm;
+    lfo.connect(lg); lg.connect(o.frequency);
+    const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 0.02); g.gain.setValueAtTime(0.16, t + 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.68);
+    o.connect(g); g.connect(out); o.start(t); lfo.start(t); o.stop(t + 0.72); lfo.stop(t + 0.72);
+    if (!muffled) hiss('bandpass', 3000 * pm, 3, 0.6, 0.05);
+  },
+  relay() { tone('square', 70, 40, 0.07, 0.22); hiss('lowpass', 420, 1, 0.06, 0.3); },
+  heart() { tone('sine', 62, 40, 0.14, 0.55); tone('sine', 58, 38, 0.12, 0.4, 0.22); },
+  tick() { tone('square', 880, 880, 0.03, 0.05); },
+  lock() { tone('square', 330, 330, 0.04, 0.06); },
+  grade(g) {
+    if (g === 'perfect') { tone('square', 1320, 1320, 0.07, 0.07); tone('square', 1760, 1760, 0.12, 0.07, 0.06); }
+    else if (g === 'good') tone('square', 990, 990, 0.08, 0.06);
+    else if (g === 'notgood') tone('square', 330, 300, 0.12, 0.06);
+    else tone('sawtooth', 110, 80, 0.25, 0.12);
+  },
+  perfect() { [523, 659, 784, 1047].forEach((f, i) => tone('square', f, f, 0.5 - i * 0.05, 0.05, i * 0.07)); hiss('highpass', 6000, 0.5, 0.4, 0.05, 0.1); },
+  ignite() { hiss('lowpass', 900, 0.6, 0.7, 0.5); hiss('bandpass', 2400, 0.7, 0.5, 0.2, 0.05); tone('sawtooth', 70, 140, 0.6, 0.12); },
+  douse() { hiss('highpass', 2500, 0.4, 0.8, 0.25); hiss('lowpass', 500, 0.8, 0.5, 0.2); },
+  relight() { tone('square', 70, 40, 0.07, 0.22); hiss('lowpass', 420, 1, 0.06, 0.3); tone('sine', 120, 120, 0.9, 0.06, 0.1); },
+  timeout() { [392, 523].forEach((f, i) => tone('triangle', f, f, 0.25, 0.1, i * 0.12)); },
+  start() { tone('sine', 220, 70, 0.9, 0.25); hiss('lowpass', 300, 1, 0.8, 0.1); },
+  scare() {
+    hiss('bandpass', 1500, 0.5, 1.5, 0.9); hiss('lowpass', 200, 1, 1.4, 0.8);
+    tone('sawtooth', 180, 560, 1.2, 0.35); tone('sawtooth', 187, 590, 1.2, 0.3); tone('square', 92, 55, 1.4, 0.3); tone('sine', 3100, 2400, 1.0, 0.18);
+  }
+};
+
+/* ================= game state ================= */
+const $ = id => document.getElementById(id);
+const stage = $('stage'), hMade = $('hMade'), hBest = $('hBest'), hSteps = $('hSteps'), hClock = $('hClock'), msgEl = $('msg'), hintEl = $('hint');
+const titleEl = $('title'), overEl = $('over');
+const S = {
+  state: 'TITLE', T: 0, made: 0, miss: 0, best: 0, step: 0, clock: 10, lastSec: 10,
+  aimT: 0, aimPh: 0, aim: 0, aimLocked: 0, powT: 0, pow: 0, pTarget: 0.78, pHalf: 0.032, pts: 0, gA: '', gP: '', pp: false,
+  resT: 0, resKind: '', darkT: 0, darkDelta: 0, darkApplied: false, scT: 0, shake: 0, net: 0,
+  armT: -1, refRoll: 0.1, twitchT: 3, hbT: 1, dark: false, scarePose: false,
+  streak: 0, fire: false, relit: 0, relitUsed: 0, timeouts: 0, saved: false
+};
+try { S.best = parseInt(localStorage.getItem('deadball.best') || '0', 10) || 0; } catch (e) { S.best = 0; }
+const ball = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, spin: 0, yaw: 0, active: false };
+const shot = { made: false, rim: 0, board: 0, t: 0, done: false, cool: 0 };
+const HOOP = { x: 0, y: 3.05, z: 0 }, RIM_R = 0.2286, BALL_R = 0.12, TUBE = 0.014;
+const REF_PATH = [[4.9, -3.3], [3.5, -1.3], [2.5, 0.8], [1.75, 2.55], [1.05, 3.85]];
+const refPos = { x: 4.9, z: -3.3 };
+const EYE = [0, 1.85, 5.3];
+let phAcc = 0;
+
+const pad2 = n => String(n).padStart(2, '0');
+function hud() {
+  hMade.textContent = pad2(S.pts || 0); hBest.textContent = pad2(S.best); $('tBest').textContent = pad2(S.best);
+  const away = 5 - S.step;
+  hSteps.textContent = away <= 0 ? 'HE IS HERE' : 'HE IS ' + away + (away === 1 ? ' STEP' : ' STEPS') + ' AWAY';
+  $('tc').classList.toggle('near', away <= 2);
+  $('hTO').textContent = S.timeouts;
+  const sk = $('streak');
+  sk.textContent = S.fire ? 'ON FIRE \u00b7 ' + S.streak + ' IN A ROW \u00b7 +1' : S.streak >= 2 ? S.streak + ' IN A ROW' : '';
+  sk.className = S.fire ? 'fire' : '';
+}
+// streak events are queued so two rewards on one shot don't talk over each other
+const evtEl = $('evt'); let evtQ = [], evtBusy = 0;
+function evt(txt, cls, sound) { evtQ.push([txt, cls, sound]); }
+function pumpEvt(dt) {
+  evtBusy -= dt; if (evtBusy > 0 || !evtQ.length) return;
+  const [txt, cls, sound] = evtQ.shift();
+  evtEl.textContent = txt; evtEl.className = 'hud ' + cls; void evtEl.offsetWidth; evtEl.classList.add('show');
+  if (sound) sound(); evtBusy = 0.9;
+}
+function flash(txt, good) { msgEl.textContent = txt; msgEl.className = 'hud ' + (good ? 'good' : 'bad'); void msgEl.offsetWidth; msgEl.classList.add('show'); }
+function hint(txt) { hintEl.textContent = txt; }
+
+function deadLights() { const s = S.step; return (s >= 4 ? 1 : 0) + (s >= 3 ? 2 : 0) + (s >= 2 ? 1 : 0); }
+function applyStepLights() {
+  const s = S.step;
+  const alive = [1, s >= 4 ? 0.7 : 1, s >= 3 ? 0.25 : 1, s >= 3 ? 0 : 1, s >= 2 ? 0 : 1];
+  // streak rewards bring dead lights back, nearest first
+  let r = S.relit; S.relitUsed = 0;
+  for (const i of [1, 3, 2, 4]) if (r > 0 && alive[i] < 1) { alive[i] = 1; r--; S.relitUsed++; LIGHTS[i].fl = 0.5; }
+  for (let i = 0; i < 5; i++) { LIGHTS[i].alive = alive[i]; LIGHTS[i].rateNow = LIGHTS[i].rate + (alive[i] < 1 ? s : Math.max(0, s - 2)) * (i === 1 ? 0.35 : 0.08); }
+  fogInv = 1 / Math.min(16, Math.max(8, 16 - s * 1.6 + S.relitUsed * 2.2));
+  const p = REF_PATH[Math.min(4, s)]; refPos.x = p[0]; refPos.z = p[1];
+}
+
+function startGame() {
+  S.made = 0; S.pts = 0; S.miss = 0; S.step = 0; S.scarePose = false; S.dark = false;
+  S.streak = 0; S.fire = false; S.relit = 0; S.timeouts = 0; S.saved = false; evtQ = []; FIRE.length = 0;
+  GTR = GTG = GTB = 1; noiseAmt = 0;
+  applyStepLights(); titleEl.hidden = true; overEl.hidden = true; stage.dataset.mode = 'play';
+  sfx.start(); hud(); nextShot();
+}
+function handPos() {
+  const dip = S.state === 'POWER' ? 0.06 * Math.min(1, S.powT * 4) : 0;
+  return [0.3, 1.66 + Math.sin(S.T * 1.7) * 0.008 - dip, 4.4];
+}
+function nextShot() {
+  S.state = 'AIM'; S.gA = ''; S.gP = ''; S.pp = false; S.clock = 10; S.lastSec = 10; S.aimT = 0; S.aimPh = Math.random() * Math.PI * 2; S.armT = -1;
+  ball.active = false; hint('SPACE / CLICK / TAP TO LOCK AIM');
+}
+// grades work like a timing readout: PERFECT on the center line, GOOD inside the green, NOT GOOD just outside it, NOT EVEN CLOSE beyond that
+const GRADES = { perfect: 'PERFECT', good: 'GOOD', notgood: 'NOT GOOD', nec: 'NOT EVEN CLOSE' };
+const AIM_PERFECT = 0.022, AIM_GOOD = 0.1, AIM_NG = 0.3, POW_PERFECT = 0.008;
+function gradeAim(a) { const e = Math.abs(a); return e <= AIM_PERFECT ? 'perfect' : e <= AIM_GOOD ? 'good' : e <= AIM_NG ? 'notgood' : 'nec'; }
+function gradePow(p) { const e = Math.abs(p - S.pTarget); return e <= POW_PERFECT ? 'perfect' : e <= S.pHalf ? 'good' : e <= S.pHalf * 2.5 ? 'notgood' : 'nec'; }
+function pop(el, label, g) {
+  el.innerHTML = '<small>' + label + '</small>' + GRADES[g];
+  el.className = 'hud grade g-' + g; void el.offsetWidth; el.classList.add('show');
+  sfx.grade(g);
+}
+const popAim = $('popAim'), popPow = $('popPow'), ppEl = $('pp');
+function lockAim() { S.aimLocked = S.aim; S.gA = gradeAim(S.aim); S.state = 'POWER'; S.powT = 0; sfx.lock(); pop(popAim, 'AIM', S.gA); hint('TAP AGAIN TO LOCK POWER'); }
+function shoot() {
+  sfx.lock();
+  S.gP = gradePow(S.pow); S.pp = S.gA === 'perfect' && S.gP === 'perfect';
+  pop(popPow, 'POWER', S.gP);
+  const P = handPos();
+  const dx = HOOP.x - P[0], dz = (HOOP.z - 0.05) - P[2], d = Math.hypot(dx, dz), dy = HOOP.y - P[1];
+  const th = 60 * Math.PI / 180; // steep arc: ~45° entry, so a centered shot drops clean
+  const v = Math.sqrt(9.8 * d * d / (2 * Math.cos(th) ** 2 * (d * Math.tan(th) - dy)));
+  const scale = 1 + (S.pow - S.pTarget) * 0.22;
+  const yaw = Math.atan2(dx, dz) + S.aimLocked * 0.11;
+  const vh = v * Math.cos(th) * scale;
+  ball.x = P[0]; ball.y = P[1]; ball.z = P[2];
+  ball.vx = Math.sin(yaw) * vh; ball.vz = Math.cos(yaw) * vh; ball.vy = v * Math.sin(th) * scale;
+  ball.yaw = yaw; ball.spin = 0; ball.active = true;
+  shot.made = false; shot.rim = 0; shot.board = 0; shot.t = 0; shot.done = false; shot.cool = 0;
+  S.state = 'FLIGHT'; S.armT = 0; phAcc = 0; hint('');
+}
+function resolve(kind) {
+  shot.done = true; S.state = 'RESULT'; S.resT = 0;
+  if (kind === 'made') {
+    const swish = shot.rim === 0 && shot.board === 0;
+    const wasFire = S.fire;
+    S.made++; S.streak++; S.pts += (S.pp ? 2 : 1) + (wasFire ? 1 : 0);
+    if (S.pts > S.best) { S.best = S.pts; try { localStorage.setItem('deadball.best', String(S.best)); } catch (e) {} }
+    S.resKind = swish ? 'swish' : 'made';
+    if (S.pp) { ppEl.className = 'hud'; void ppEl.offsetWidth; ppEl.classList.add('show'); sfx.perfect(); }
+    else flash((swish ? 'SWISH' : shot.board && !shot.rim ? 'OFF THE GLASS' : shot.rim > 2 ? 'ROLLED IN' : 'IT COUNTS') + (wasFire ? ' +1' : ''), true);
+    if (S.streak === 3) { S.fire = true; evt("YOU'RE ON FIRE", 'fire', sfx.ignite); }
+    if (S.streak % 3 === 0 && deadLights() > S.relitUsed) { S.relit++; applyStepLights(); evt('A LIGHT COMES BACK ON', 'light', sfx.relight); }
+    if (S.streak % 4 === 0) { if (S.timeouts < 3) { S.timeouts++; evt('TIMEOUT BANKED', 'to', sfx.timeout); } else evt('TIMEOUTS FULL', 'out'); }
+  } else {
+    S.miss++; S.resKind = 'miss';
+    if (S.fire) { S.fire = false; evt('FIRE OUT', 'out', sfx.douse); }
+    S.streak = 0;
+    S.saved = S.timeouts > 0; if (S.saved) { S.timeouts--; evt('TIMEOUT \u00b7 HE STAYS PUT', 'to', sfx.timeout); }
+    flash(kind === 'violation' ? '10-SECOND VIOLATION' : shot.rim > 2 ? 'IN AND OUT' : shot.rim ? 'BRICK' : shot.board ? 'OFF THE GLASS' : 'AIRBALL', false);
+    const muff = S.saved; setTimeout(() => sfx.whistle(1 - S.step * 0.07, muff), 350);
+    S.shake = 0.5;
+  }
+  hud();
+}
+function startDark(delta) { S.state = 'DARK'; S.darkT = 0; S.darkDelta = delta; S.darkApplied = false; S.dark = true; sfx.relay(); }
+function afterResult() {
+  if (S.resKind === 'miss') { if (S.saved) { S.saved = false; LIGHTS.forEach((L, i) => { if (i < 5) L.fl = 0.25; }); nextShot(); } else startDark(1); }
+  else if (S.resKind === 'swish' && S.step > 0) startDark(-1);
+  else nextShot();
+}
+function gameOver() {
+  S.state = 'OVER'; stage.dataset.mode = 'menu'; overEl.hidden = false;
+  $('oMade').textContent = S.pts; $('oBest').textContent = S.best; hud();
+}
+function press() {
+  audioInit();
+  switch (S.state) {
+    case 'TITLE': case 'OVER': if (S.state === 'OVER' && S.scT < 0.8) return; startGame(); break;
+    case 'AIM': lockAim(); break;
+    case 'POWER': shoot(); break;
+  }
+}
+function cycleRes() { setRes(RES[(RES.indexOf(W) + 1) % RES.length]); perf.n = 0; perf.sum = 0; }
+const perf = { n: 0, sum: 0, dropped: false };
+$('resBtn').addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); cycleRes(); });
+document.addEventListener('keydown', e => {
+  if (e.code === 'KeyR' && !e.repeat) { cycleRes(); if (S.state !== 'TITLE' && S.state !== 'OVER') flash(W + '\u00d7' + H, true); return; }
+  if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); if (!e.repeat) press(); }
+});
+stage.addEventListener('pointerdown', e => { e.preventDefault(); stage.focus({ preventScroll: true }); press(); });
+
+/* ================= physics ================= */
+function physStep(h) {
+  const prevY = ball.y;
+  ball.vy -= 9.8 * h;
+  ball.x += ball.vx * h; ball.y += ball.vy * h; ball.z += ball.vz * h;
+  ball.spin += 14 * h * Math.min(1, Math.hypot(ball.vx, ball.vz) / 3);
+  if (shot.cool > 0) shot.cool -= h;
+  // rim (circle of radius RIM_R)
+  const rx = ball.x - HOOP.x, rz = ball.z - HOOP.z, rho = Math.hypot(rx, rz) || 1e-6;
+  const qx = HOOP.x + rx / rho * RIM_R, qz = HOOP.z + rz / rho * RIM_R, qy = HOOP.y;
+  let dx = ball.x - qx, dy = ball.y - qy, dz = ball.z - qz;
+  const dist = Math.hypot(dx, dy, dz), md = BALL_R + TUBE;
+  if (dist < md && dist > 1e-6) {
+    const nx = dx / dist, ny = dy / dist, nz = dz / dist;
+    ball.x = qx + nx * md; ball.y = qy + ny * md; ball.z = qz + nz * md;
+    const vn = ball.vx * nx + ball.vy * ny + ball.vz * nz;
+    if (vn < 0) {
+      ball.vx -= 1.55 * vn * nx; ball.vy -= 1.55 * vn * ny; ball.vz -= 1.55 * vn * nz;
+      ball.vx *= 0.93; ball.vz *= 0.93;
+      if (shot.cool <= 0) { shot.rim++; shot.cool = 0.06; sfx.clang(-vn); S.net = Math.max(S.net, 0.4); }
+    }
+  }
+  // backboard front face
+  if (ball.vz < 0 && ball.z - BALL_R < -0.4 && ball.z > -0.45 - BALL_R && Math.abs(ball.x) < 0.94 && ball.y > 2.86 && ball.y < 4.0) {
+    ball.z = -0.4 + BALL_R; const s = -ball.vz; ball.vz = s * 0.62; ball.vx *= 0.9; shot.board++; sfx.board(s);
+  }
+  // net drag
+  if (rho < RIM_R && ball.y < HOOP.y && ball.y > HOOP.y - 0.45) {
+    ball.vx *= 0.996; ball.vz *= 0.996; ball.vy *= 0.998;
+    ball.vx -= rx * 6 * h; ball.vz -= rz * 6 * h;
+  }
+  // scoring: passes down through the rim plane inside the ring
+  if (!shot.made && !shot.done && prevY >= HOOP.y && ball.y < HOOP.y && rho < RIM_R) { shot.made = true; S.net = 1; if (shot.rim === 0 && shot.board === 0) sfx.swish(); else hiss('bandpass', 2800, 0.8, 0.18, 0.12); }
+  // floor & walls
+  if (ball.y < BALL_R) { ball.y = BALL_R; if (ball.vy < 0) { const s = -ball.vy; ball.vy = s * 0.68; ball.vx *= 0.86; ball.vz *= 0.86; if (s > 0.5) sfx.bounce(s); if (s < 0.3) ball.vy = 0; } }
+  if (ball.z < -4 + BALL_R && ball.vz < 0) { ball.z = -4 + BALL_R; ball.vz *= -0.55; }
+  if (ball.z > 12 - BALL_R && ball.vz > 0) { ball.z = 12 - BALL_R; ball.vz *= -0.55; }
+  if (Math.abs(ball.x) > 8 - BALL_R && ball.x * ball.vx > 0) { ball.x = Math.sign(ball.x) * (8 - BALL_R); ball.vx *= -0.55; }
+}
+
+/* ================= update ================= */
+function update(dt) {
+  S.T += dt;
+  const st = S.state;
+  // difficulty
+  const n = Math.min(S.made, 24);
+  const wA = 2.1 + n * 0.085, wP = 0.95 + n * 0.045;
+  S.pHalf = Math.max(0.022, 0.032 - n * 0.0005);
+
+  if (st === 'AIM' || st === 'POWER') {
+    S.clock -= dt;
+    const sec = Math.max(0, Math.ceil(S.clock));
+    if (sec !== S.lastSec) { S.lastSec = sec; if (sec <= 3 && sec > 0) sfx.tick(); }
+    if (S.clock <= 0) { S.clock = 0; resolve('violation'); }
+  }
+  if (S.state === 'AIM') {
+    S.aimT += dt;
+    const trem = S.step * 0.055 * (Math.sin(S.T * 23) + Math.sin(S.T * 31.7)) * 0.5;
+    S.aim = Math.max(-1, Math.min(1, Math.sin(S.aimT * wA + S.aimPh) + trem));
+  } else if (S.state === 'POWER') {
+    S.powT += dt;
+    const q = (S.powT * wP) % 2; S.pow = q < 1 ? q : 2 - q;
+  }
+  if (ball.active) {
+    phAcc += dt; const h = 1 / 600;
+    while (phAcc >= h) { physStep(h); phAcc -= h; }
+  }
+  if (S.state === 'FLIGHT') {
+    shot.t += dt;
+    if (shot.made) resolve('made');
+    else if ((shot.t > 0.5 && ball.y < 2.5 && ball.vy < 0) || shot.t > 5) resolve('miss');
+  } else if (S.state === 'RESULT') {
+    S.resT += dt; if (S.resT > 1.6) afterResult();
+  } else if (S.state === 'DARK') {
+    S.darkT += dt;
+    if (!S.darkApplied && S.darkT > 0.3) {
+      S.darkApplied = true;
+      S.step = Math.max(0, Math.min(5, S.step + S.darkDelta));
+      if (S.darkDelta > 0) S.relit = 0;
+      if (S.step >= 5) { S.scarePose = true; } else applyStepLights();
+      hud();
+    }
+    if (S.darkT > (S.step >= 5 ? 1.1 : 0.7)) {
+      S.dark = false; sfx.relay();
+      if (S.step >= 5) { S.state = 'SCARE'; S.scT = 0; sfx.scare(); S.shake = 1.2; stage.dataset.mode = 'menu'; msgEl.className = 'hud'; }
+      else nextShot();
+    }
+  } else if (S.state === 'SCARE') {
+    S.scT += dt;
+    noiseAmt = Math.max(0, 2.2 - S.scT);
+    const fl = (Math.floor(S.scT * 18) & 1) ? 1 : 0.6;
+    GTR = 1.5 * fl; GTG = 0.45 * fl; GTB = 0.4 * fl;
+    if (S.scT > 1.5) { S.scarePose = false; S.step = 4; applyStepLights(); GTR = 1; GTG = 0.42; GTB = 0.4; noiseAmt = 0.4; S.scT = 0; gameOver(); }
+  } else if (S.state === 'OVER') {
+    S.scT += dt;
+  }
+
+  if (S.armT >= 0) S.armT += dt;
+  S.net = Math.max(0, S.net - dt * 1.2);
+  S.shake = Math.max(0, S.shake - dt * 1.5);
+
+  // ref twitches while you are not looking closely
+  S.twitchT -= dt;
+  if (S.twitchT <= 0) { S.twitchT = 1.5 + Math.random() * 4; if (S.step >= 1 || S.state === 'TITLE') S.refRoll = (Math.random() - 0.5) * 0.7; }
+
+  // heartbeat
+  const playing = ['AIM', 'POWER', 'FLIGHT', 'RESULT'].includes(S.state);
+  if (playing && S.step >= 2) { S.hbT -= dt; if (S.hbT <= 0) { sfx.heart(); S.hbT = 1.35 - S.step * 0.2; } }
+
+  // lights
+  let sum = 0;
+  for (let i = 0; i < 5; i++) {
+    const L = LIGHTS[i]; let v = L.alive;
+    if (L.fl > 0) { L.fl -= dt; if (Math.random() < 0.55) v *= 0.08; }
+    else if (Math.random() < (L.rateNow || L.rate) * dt) L.fl = 0.05 + Math.random() * 0.4;
+    if (S.dark) v = 0;
+    L.cur = L.i * v * 0.9; EM[i] = v * 1.1; sum += v;
+  }
+  { const FL = LIGHTS[6], fb = ball.active ? ball : null, hp = fb ? null : handPos(); FL.x = fb ? fb.x : hp[0]; FL.y = fb ? fb.y : hp[1]; FL.z = fb ? fb.z : hp[2]; FL.cur = S.fire && S.state !== 'DARK' && S.state !== 'TITLE' ? FL.i * (0.75 + 0.35 * Math.random()) : 0; }
+  pumpEvt(dt); updateFire(dt);
+  LIGHTS[5].cur = LIGHTS[5].i * (0.85 + 0.15 * Math.sin(S.T * 50)); EM[5] = 1; EM[6] = 0.9 + 0.1 * Math.sin(S.T * 50);
+  AMB = S.dark ? 0 : 0.35 + 0.13 * sum;
+  if (S.state === 'SCARE') { LIGHTS[0].cur = 14; AMB = 1.2; }
+  if (AC) {
+    humG.gain.setTargetAtTime(0.022 * sum / 5, AC.currentTime, 0.02);
+    droneG.gain.setTargetAtTime(S.state === 'TITLE' ? 0.03 : 0.02 + S.step * 0.03, AC.currentTime, 0.3);
+  }
+
+  // scoreboard + hud clock
+  drawScore(S.pts || 0, S.miss, Math.max(0, Math.ceil(S.clock)), S.step, S.timeouts);
+  const sec = Math.max(0, Math.ceil(S.clock));
+  if (hClock.textContent !== String(sec)) hClock.textContent = sec;
+  hClock.classList.toggle('low', sec <= 3 && (S.state === 'AIM' || S.state === 'POWER'));
+}
+
+
+/* ================= on-fire particles ================= */
+const tFire = paint(mkTex(16, 16), (x, y) => {
+  const d = Math.hypot(x - 7.5, (y - 9) * 0.8) / 7.5 + (h2(x, y + 70) - 0.5) * 0.35;
+  return d < 1 ? [1, 1, 1, 1] : [0, 0, 0, 0];
+});
+const FIRE = [], FIRE_MESH = [];
+function updateFire(dt) {
+  if (S.fire && S.state !== 'DARK' && S.state !== 'TITLE' && S.state !== 'SCARE') {
+    const bp = ball.active ? [ball.x, ball.y, ball.z] : handPos();
+    const n = ball.active ? 5 : 2;
+    for (let k = 0; k < n; k++) FIRE.push({ x: bp[0] + (Math.random() - 0.5) * 0.14, y: bp[1] + (Math.random() - 0.3) * 0.12, z: bp[2] + (Math.random() - 0.5) * 0.14, vy: 0.4 + Math.random() * 0.5, life: 0, max: 0.25 + Math.random() * 0.3, s: 0.05 + Math.random() * 0.06 });
+  }
+  for (let i = FIRE.length - 1; i >= 0; i--) { const f = FIRE[i]; f.life += dt; f.y += f.vy * dt; if (f.life >= f.max) FIRE.splice(i, 1); }
+  if (FIRE.length > 160) FIRE.splice(0, FIRE.length - 160);
+}
+function drawFire() {
+  if (!FIRE.length) return;
+  const rx = CAM.rx, ry = CAM.ry, rz = CAM.rz, ux = CAM.ux, uy = CAM.uy, uz = CAM.uz;
+  for (const f of FIRE) {
+    const t = f.life / f.max, sz = f.s * (1 - t * 0.6);
+    FIRE_MESH.length = 0;
+    const P = (i, j) => [f.x + (rx * i + ux * j) * sz, f.y + (ry * i + uy * j) * sz, f.z + (rz * i + uz * j) * sz];
+    quad(FIRE_MESH, P(-1, -1), P(1, -1), P(1, 1), P(-1, 1), [0, 1], [1, 1], [1, 0], [0, 0], tFire, 1 | 2 | 4, [-CAM.fx, -CAM.fy, -CAM.fz]);
+    // yellow core fading to orange then ember red
+    const c = t < 0.35 ? [1.3, 1.0, 0.35] : t < 0.7 ? [1.25, 0.55, 0.1] : [0.8, 0.18, 0.05];
+    drawMesh(FIRE_MESH, null, c);
+  }
+}
+/* ================= render ================= */
+function rect(x, y, w, h, c) {
+  // coordinates are in 320x240 HUD units, scaled to the render resolution
+  const x0 = Math.max(0, Math.round(x * K)), y0 = Math.max(0, Math.round(y * K)), x1 = Math.min(W, Math.round((x + w) * K)), y1 = Math.min(H, Math.round((y + h) * K));
+  for (let j = y0; j < y1; j++) { let i = j * W + x0; for (let k = x0; k < x1; k++) FB[i++] = c; }
+}
+const C_GOLD = pk(232, 210, 122), C_BONE = pk(220, 213, 194), C_DARK = pk(14, 14, 13), C_BLACK = pk(0, 0, 0), C_GREEN = pk(148, 182, 125), C_GDIM = pk(52, 70, 44), C_RED = pk(192, 36, 31), C_FILL = pk(120, 58, 26);
+const GCOL = {};
+function drawMeters() {
+  if (!GCOL.good) Object.assign(GCOL, { perfect: C_GOLD, good: C_GREEN, notgood: pk(208, 138, 74), nec: C_RED });
+  if (S.state !== 'AIM' && S.state !== 'POWER') return;
+  const HW = 160, H = 240, W = 320;
+  const bx = HW - 60, by = H - 17;
+  rect(bx - 1, by - 1, 122, 7, C_BLACK); rect(bx, by, 120, 5, C_DARK);
+  rect(HW - AIM_GOOD * 60, by, AIM_GOOD * 120, 5, C_GDIM); rect(HW - AIM_PERFECT * 60, by, AIM_PERFECT * 120, 5, C_GOLD);
+  const a = S.state === 'AIM' ? S.aim : S.aimLocked, mx = Math.round(HW + a * 60);
+  rect(mx - 1, by - 3, 2, 11, S.state === 'AIM' ? C_BONE : GCOL[S.gA] || C_RED);
+  if (S.state === 'POWER') {
+    const px = W - 22, py = 62, ph = 110;
+    rect(px - 1, py - 1, 8, ph + 2, C_BLACK); rect(px, py, 6, ph, C_DARK);
+    const fy = Math.round(py + ph * (1 - S.pow));
+    rect(px + 1, fy, 4, py + ph - fy, C_FILL);
+    const g0 = Math.round(py + ph * (1 - (S.pTarget + S.pHalf))), g1 = Math.round(py + ph * (1 - (S.pTarget - S.pHalf)));
+    rect(px - 2, g0, 10, 1, C_GREEN); rect(px - 2, g1, 10, 1, C_GREEN); rect(px + 5, g0, 1, g1 - g0, C_GREEN);
+    const pc = py + ph * (1 - S.pTarget); rect(px, pc - ph * POW_PERFECT, 6, Math.max(1.2, ph * POW_PERFECT * 2), C_GOLD);
+    rect(px - 3, fy, 12, 1, C_BONE);
+  }
+}
+function buildNet() {
+  NET.length = 0;
+  const seg = 10, top = 0.222, wob = S.net;
+  const bot = 0.135 * (1 - 0.3 * wob * Math.sin(S.T * 30)), sway = wob * 0.05 * Math.sin(S.T * 21), yb = 2.62 + wob * 0.05 * Math.sin(S.T * 17);
+  for (let i = 0; i < seg; i++) {
+    const a0 = i / seg * Math.PI * 2, a1 = (i + 1) / seg * Math.PI * 2, am = (a0 + a1) / 2;
+    const P = (a, r, y, o) => [Math.cos(a) * r + o, y, Math.sin(a) * r];
+    quad(NET, P(a0, top, 3.03, 0), P(a1, top, 3.03, 0), P(a1, bot, yb, sway), P(a0, bot, yb, sway), [i * 0.3, 0], [(i + 1) * 0.3, 0], [(i + 1) * 0.3, 1], [i * 0.3, 1], tNet, 1 | 4, [Math.cos(am), 0, Math.sin(am)]);
+  }
+}
+const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const smooth = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+function buildArms() {
+  ARMS.length = 0;
+  const st = S.state;
+  if (!(st === 'AIM' || st === 'POWER' || (S.armT >= 0 && S.armT < 0.8))) return;
+  const B = ball.active ? [0.3, 1.66, 4.4] : handPos();
+  let rE = [0.42, 1.15, 4.95], rH = [B[0] + 0.05, B[1] - 0.11, B[2] + 0.05], rT = [B[0] + 0.02, B[1] - 0.12, B[2] - 0.06];
+  let lE = [-0.18, 1.18, 4.95], lH = [B[0] - 0.13, B[1] - 0.04, B[2] + 0.04], lT = [B[0] - 0.13, B[1] + 0.07, B[2] - 0.01];
+  if (S.armT >= 0) {
+    // short follow-through off to the right, then the arms drop out of frame so the hoop stays clear
+    const f = smooth(S.armT / 0.12), dn = smooth((S.armT - 0.4) / 0.35) * 1.2;
+    const up = (p, q) => { const r = lerp3(p, q, f); r[1] -= dn; return r; };
+    rE = up(rE, [0.46, 1.3, 4.8]); rH = up(rH, [0.36, 1.8, 4.2]); rT = up(rT, [0.35, 1.83, 4.08]);
+    lE = up(lE, [-0.1, 1.3, 4.8]); lH = up(lH, [0.1, 1.72, 4.3]); lT = up(lT, [0.12, 1.76, 4.2]);
+  }
+  beam(ARMS, rE, rH, 0.04, tSkinP); beam(ARMS, rH, rT, 0.035, tSkinP);
+  beam(ARMS, lE, lH, 0.038, tSkinP); beam(ARMS, lH, lT, 0.032, tSkinP);
+}
+function render() {
+  // camera
+  let eye, target;
+  const sh = S.shake * (RM ? 0.15 : 1);
+  const jx = (Math.random() - 0.5) * sh * 0.08, jy = (Math.random() - 0.5) * sh * 0.08;
+  if (S.state === 'TITLE') {
+    eye = [Math.sin(S.T * 0.12) * 1.8, 2.3 + Math.sin(S.T * 0.21) * 0.15, 6.4];
+    target = [Math.sin(S.T * 0.09) * 0.8, 2.5, 0];
+  } else {
+    const br = 1 + S.step * 0.6;
+    eye = [EYE[0] + Math.sin(S.T * 0.7) * 0.012 * br + jx, EYE[1] + Math.sin(S.T * 1.6) * 0.01 * br + jy, EYE[2]];
+    target = S.state === 'SCARE' ? [0.03, 1.95, 4.5] : [0, 2.85, 0];
+  }
+  setCam(eye, target);
+  noiseOff = (Math.random() * 4096) | 0;
+
+  const fc = pk(Math.round(fogR * 255), Math.round(fogG * 255), Math.round(fogB * 255));
+  FB.fill(S.dark ? C_BLACK : fc); ZB.fill(0);
+
+  drawMesh(ROOM, null);
+
+  // crowd
+  const stare = S.step >= 1 || S.state === 'OVER' || S.state === 'SCARE';
+  const count = S.state === 'TITLE' ? 3 : Math.min(SEATS.length, 3 + S.step * 3);
+  for (let i = 0; i < count; i++) {
+    const s = SEATS[i];
+    drawMesh(CROWD_BODY, makeM(rotY(Math.PI / 2), [s.x, s.y, s.z], s.s));
+    const hx = s.x, hy = s.y + 0.62 * s.s, hz = s.z;
+    const tx = stare ? eye[0] : 0, tz = stare ? eye[2] : 0;
+    drawMesh(CROWD_HEAD, makeM(mul3(rotY(Math.atan2(tx - hx, tz - hz)), rotZ(s.roll)), [hx, hy, hz], s.s));
+  }
+
+  // referee
+  {
+    let rx = refPos.x, rz = refPos.z, sc = 1.18;
+    if (S.scarePose) { rx = 0.03; rz = 4.72; sc = 1.0; }
+    const yaw = Math.atan2(eye[0] - rx, eye[2] - rz);
+    drawMesh(REF, makeM(rotY(yaw), [rx, 0, rz], sc));
+    drawMesh(REF_HEAD, makeM(mul3(rotY(yaw), rotZ(S.scarePose ? 0.25 : S.refRoll)), [rx, 1.93 * sc, rz], sc));
+  }
+
+  buildNet(); drawMesh(NET, null);
+
+  const bp = ball.active ? [ball.x, ball.y, ball.z] : handPos();
+  if (S.state !== 'TITLE' && S.state !== 'SCARE' && !(S.state === 'OVER')) {
+    drawMesh(BALL, makeM(mul3(rotY(ball.yaw), rotX(-ball.spin)), bp), S.fire ? [1.5, 1.15, 0.9] : null);
+    drawFire();
+    buildArms(); drawMesh(ARMS, null);
+  }
+  drawMeters();
+  g2.putImageData(IMG, 0, 0);
+}
+
+/* ================= layout & loop ================= */
+function fit() {
+  const app = $('app'), cs = getComputedStyle(app);
+  const aw = app.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const ah = app.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  let w = Math.min(aw, ah * 4 / 3); w = Math.max(160, Math.floor(w));
+  const h = Math.floor(w * 3 / 4);
+  stage.style.width = w + 'px'; stage.style.height = h + 'px';
+  stage.style.setProperty('--u', (w / 320) + 'px');
+}
+window.addEventListener('resize', fit); fit();
+applyStepLights(); hud();
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  update(dt);
+  const t0 = performance.now(); render(); const rt = performance.now() - t0;
+  // if this device can't keep up at the chosen resolution, step down once
+  if (!perf.dropped && W > 320 && S.state !== 'TITLE') {
+    perf.sum += rt; perf.n++;
+    if (perf.n >= 120) { if (perf.sum / perf.n > 28) { perf.dropped = true; setRes(RES[RES.indexOf(W) + 1]); flash('LOWERED TO ' + W + '\u00d7' + H, true); } perf.n = 0; perf.sum = 0; }
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
