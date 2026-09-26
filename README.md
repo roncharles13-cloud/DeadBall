@@ -17,11 +17,26 @@ The referee never went home — and he's counting your misses.
 - **3 in a row:** you're on fire — +1 a shot, and a dead light comes back.
 - **4 in a row:** bank a timeout. It cancels his next step.
 
+## Difficulty
+
+Four modes, selectable on the title and game-over screens. Difficulty changes
+only one thing — how fast both meters sweep:
+
+| Mode | Meter speed |
+|---|---|
+| Easy | 0.7x |
+| Medium | 1x |
+| Hard | 1.5x |
+| Nightmare | 3.2x |
+
+Each mode keeps its own high score.
+
 ## Controls
 
 | Action | Input |
 |---|---|
 | Lock aim, then power | `Space`, click, or tap |
+| Change mode (title / game over) | `<-` / `->`, or `1`-`4` |
 | Toggle resolution | `R` |
 
 One button for the whole game. It's harder than it sounds.
@@ -40,5 +55,5 @@ Then visit http://localhost:8000
 ## Tech
 
 Vanilla JS on a 2D canvas, Web Audio API for sound, and `localStorage` for the
-high score (Memory Card Slot 1). No dependencies — the only network requests
+per-mode high scores (Memory Card Slot 1). No dependencies — the only network requests
 are Google Fonts (IM Fell English SC and VT323).
